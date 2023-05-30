@@ -1,0 +1,145 @@
+
+Imports System.Data.SqlClient                                            ' Provides classes for working with Microsoft SQL Server
+Imports System.IO                                                        ' Provides classes for working with files and directories
+Imports System.ComponentModel                                            ' Provides classes for implementing the run-time and design-time behavior of components
+Imports System.Text                                                      ' Provides classes for working with text and text encoding
+Imports System.Data                                                      ' Provides classes for working with data from a data source
+
+Public Class Form1
+    Dim con As New SqlConnection                                         ' Declare SqlConnection object
+    Dim tbl As DataTable                                                 ' Declare DataTable object
+
+    Public Sub Gemsopen()                                                ' Define a sub procedure to open a connection to the database
+        Dim str As String = "Data Source=kyrkumgems02;Initial Catalog=GEMS_DATAMINE;Integrated Security=True"  ' Connection string
+        con.ConnectionString = str                                       ' Set the connection string for the SqlConnection object
+        con.Open()                                                       ' Open the connection to the database
+    End Sub
+
+    Public Sub Gemsclose()                                               ' Define a sub procedure to close the database connection
+        con.Close()                                                      ' Close the connection to the database
+    End Sub
+
+    Public Function _load_data(ByVal strLenh As String) As DataTable     ' Define a function to load data from the database
+        Dim dt As New DataTable                                          ' Create a new DataTable object
+        Gemsopen()                                                       ' Open the database connection
+        Dim cmd As New SqlDataAdapter(strLenh, con)                      ' Create a new SqlDataAdapter object with the given SQL string and SqlConnection object
+        cmd.Fill(dt)                                                     ' Fill the DataTable object with the data from the database using the SqlDataAdapter object
+        Gemsclose()                                                      ' Close the database connection
+        Return dt                                                        ' Return the filled DataTable object
+    End Function
+
+    Public Function checkFunc(ByVal strLenh As String) As Integer        ' Define a function to check a particular condition in the database
+        Dim str As Integer                                               ' Declare an integer variable to store the result of the SQL query
+        Gemsopen()                                                       ' Open the database connection
+        Dim cmd As New SqlCommand(strLenh, con)                          ' Create a new SqlCommand object with the given SQL string and SqlConnection object
+        str = cmd.ExecuteScalar                                          ' Execute the SQL query and store the result in the integer variable
+        Gemsclose()                                                      ' Close the database connection
+        Return str                                                       ' Return the result of the SQL query as an integer
+    End Function
+
+    Public Sub _Save(ByVal strLenh As String)                            ' Define a sub procedure to save data to the database
+        Gemsopen()                                                       ' Open the database connection
+        Dim d As String = "set dateformat dmy"                           ' Set the date format to dd/mm/yyyy
+        Dim cmd1 As New SqlCommand(d, con)                               ' Create a new SqlCommand object with the date format string and SqlConnection object
+        cmd1.ExecuteNonQuery()                                           ' Execute the SqlCommand object to set the date format
+        Dim cmd As New SqlCommand(strLenh, con)                          ' Create a new SqlCommand object with the given SQL string and SqlConnection object
+        cmd.ExecuteNonQuery()                                            ' Execute the SqlCommand object to save the data to the database
+        Gemsclose()                                                      ' Close the database connection
+    End Sub
+
+    Private Sub Form1_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+
+        tbl = New DataTable()
+        tbl = _load_data("select top(1) * from ChannelsCoords")
+        DataGridView1.DataSource = tbl
+
+        'TODO: This line of code loads data into the 'GD_DATA_EXDataSet.DRILLHOLE_Operator' table. You can move, or remove it, as needed.
+        'Me.DRILLHOLE_OperatorTableAdapter.Fill(Me.GD_DATA_EXDataSet.DRILLHOLE_Operator)
+        'TODO: This line of code loads data into the 'GEMS_DATAMINEDataSet.ChannelsCoords' table. You can move, or remove it, as needed.
+
+        'Me.ChannelsCoordsTableAdapter.Fill(Me.GEMS_DATAMINEDataSet.ChannelsCoords)
+
+    End Sub
+    Private Sub SimpleButton1_Click(sender As Object, e As EventArgs) Handles Bcopy.Click
+        'Clipboard.GetText()
+        DataGridView1.ClipboardCopyMode.ToString()
+    End Sub
+
+    Private Property ClipboardData() As String
+        Get
+            Dim iData As IDataObject = Clipboard.GetDataObject()
+            If iData.ToString = "" Then
+                Return ""
+            End If
+
+            If iData.GetDataPresent(DataFormats.UnicodeText) Then
+                Return DirectCast(iData.GetData(DataFormats.UnicodeText), String)
+            End If
+            Return ""
+        End Get
+        Set(value As String)
+            Clipboard.SetDataObject(value)
+        End Set
+    End Property
+
+    Private Sub AddRow(data As String)
+
+        If data = String.Empty Then
+            Return
+        End If
+        Dim rowData As String() = data.Split(New Char() {ControlChars.Cr, ControlChars.Tab})
+        Dim newRow As DataRow = tbl.NewRow
+
+        Dim i As Integer = 0
+        While i < rowData.Length
+            If i >= tbl.Columns.Count Then
+                Exit While
+            End If
+            newRow(i) = rowData(i)
+            System.Math.Max(System.Threading.Interlocked.Increment(i), i - 1)
+        End While
+        tbl.Rows.Add(newRow)
+    End Sub
+
+    Private Sub SimpleButton3_Click(sender As Object, e As EventArgs) Handles Bpaste.Click
+        Dim data As String() = ClipboardData.Split(ControlChars.Lf)
+        If data.Length < 1 Then
+            Return
+        End If
+        For Each row As String In data
+            AddRow(row)
+        Next
+        Label6.Text = "Paste successfully"
+    End Sub
+
+    Private Sub SimpleButton2_Click(sender As Object, e As EventArgs) Handles Bload.Click
+        Try
+            Dim text As String = ""
+            Dim dr As DataRow
+            For index = 0 To DataGridView1.RowCount - 1
+                dr = DataGridView1.DataSource.GetDataRow(index)
+                'DataGridView1.Ge
+                'DataGridView1.DataSource.GetDataRow(index)
+                If dr.RowState = DataRowState.Added Then
+                    'Dim holeid As String = dr("Hole-id")
+                Dim number As String = Tnumber.Text
+                    Dim locationx As String = dr("LocationX")
+                    Dim locationy As String = dr("LocationY")
+                    Dim locationz As String = dr("LocationZ")
+                    If IsNothing(dr) Then
+                        Exit For
+                    End If
+                    Label6.Text = " "
+                    'If (checkFunc("select count(*) from ChannelsCoords where masv='" & masv & "'") = 0) Then 
+
+                    _Save("INSERT INTO ChannelsCoords([Hole-id], LocationX, LocationY, LocationZ) VALUES('" & number & "','" & locationx & "','" & locationy & "','" & locationz & "')")
+
+
+                End If
+            Next
+        Catch ex As Exception
+            MessageBox.Show("An error occurred while saving data: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+        End Try
+    End Sub
+
+End Class
